@@ -1,0 +1,86 @@
+#
+#  This file is included in a Makefile after definition of
+#
+#  1) SOURCES: list of source files
+#  2a) to build a library:
+#      LIBRARY: name of the library
+#  2b) to build a cgi-bin application
+#      CGI_BIN: name of application
+#      LIBS: list of standard libraries (such as -lstdc++)
+#      MYLIBS: list of local libraries (such as ../cgihtml/cgihtml.a)
+
+CC       = gcc
+CFLAGS   = -fexpensive-optimizations -O3 -Wno-write-strings -fPIE
+
+CXX      = g++
+CXXFLAGS = $(CFLAGS)
+
+AR       = ar
+ARFLAGS  = crs
+
+INCS     =
+
+CLEAN_FILES = *.o $(LIBRARY) $(CGI_BIN) Makefile.depends
+
+CGI_RELEASE = /home/golovche/public_html/cgi-bin/$(CGI_BIN)
+CGI_TEST    = $(CGI_RELEASE)_test
+
+OBJS     = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
+
+##################################################
+#
+# targets
+#
+# all       -- compile library
+# clean     -- remove object files
+# depend    -- build dependency file
+# test      -- compile cgi-bin application and install as *_test
+# install   -- compile cgi-bin application and install
+#
+##################################################
+
+all: $(LIBRARY) $(CGI_BIN)
+
+clean:
+	-rm -f $(CLEAN_FILES)
+
+depend:
+	$(CC) -MM $(INCS) $(CFLAGS) $(SOURCES) > Makefile.depends
+
+test: $(CGI_TEST)
+
+install: $(CGI_RELEASE)
+
+.PHONY: all clean depend test install
+
+##################################################
+
+%.o: %.c
+	$(CC) $(INCS) $(CFLAGS) -c $<
+
+%.o: %.cpp
+	$(CXX) $(INCS) $(CXXFLAGS) -c $<
+
+%.a:
+	make -C $(dir $@)
+
+$(LIBRARY): $(OBJS)
+	$(AR) $(ARFLAGS) $(LIBRARY) $(OBJS)
+
+$(CGI_BIN): $(OBJS) $(MYLIBS)
+	$(CC) $(OBJS) $(MYLIBS) $(LIBS) -o $(CGI_BIN)
+
+$(CGI_TEST): $(CGI_BIN)
+	cp $(CGI_BIN) $(CGI_TEST)
+	chmod 755 $(CGI_TEST)
+
+$(CGI_RELEASE): $(CGI_TEST)
+	cp $(CGI_TEST) $(CGI_RELEASE)
+
+Makefile.depends: depend
+
+ifneq ($(MAKECMDGOALS),clean)
+
+include Makefile.depends
+
+endif
