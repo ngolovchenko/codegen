@@ -47,7 +47,7 @@ Delay_0
 #include <stdio.h>
 #include <string.h>
 
-#ifdef WIN32
+#ifdef _WIN32
   #include <io.h>
   #include <share.h>
   char* ScriptName = "delay.exe";
@@ -70,7 +70,7 @@ extern "C"
 {
   #include "../cgihtml/cgi-lib.h"
   #include "../cgihtml/html-lib.h"
-#ifdef WIN32
+#ifdef _WIN32
   char** CommandLineArguments;
 #else
   extern char** CommandLineArguments;
@@ -351,7 +351,7 @@ logRequest()
 
     while(log == NULL && nowTime < final)
     {
-#ifdef WIN32
+#ifdef _WIN32
       log = _fsopen( "delay_log.csv", "a", _SH_DENYWR);   //create or open file in append mode
       //writing is disabled for other processes
 
@@ -607,7 +607,7 @@ helpScreen()
 void
 extractRegs(string& buf, LISTSTR& Regs, string& newPrefix)
 {
-    char x;
+    size_t x;
     LISTSTR::iterator i;
     bool empty=true;
 
@@ -636,7 +636,7 @@ extractRegs(string& buf, LISTSTR& Regs, string& newPrefix)
     //fill all other regs names
     for(x = Regs.size() + '0'; x < MAXNUMBEROFLOOPS + '0'; x++)
     {
-        Regs.push_back(newPrefix + x);
+        Regs.push_back(newPrefix + to_string(x));
     }
 
     /*i = Regs.begin();
@@ -651,7 +651,7 @@ void
 lowercaseString(string& m)
 {
     int x = 0;
-    while(x < m.size())
+    while(x < (int)m.size())
     {
         m.at(x) = tolower(m.at(x));
         x++;
@@ -1032,7 +1032,7 @@ generateSubDelay(double cycles, string label)
     else
     {
         printf("\n\t\t\t;%.0f cycle%s\n", cycles, cycles > 1 ? "s" : "");
-        x = cycles;
+        x = (int)cycles;
         while(x != 0)
         {
             if(x >= 2)
@@ -1214,7 +1214,7 @@ generateSubDelay2(double cycles, string label)
     else
     {
         printf("\n\t\t\t;%.0f cycle%s\n", cycles, cycles > 1 ? "s" : "");
-        x = cycles;
+        x = (int)cycles;
         while(x != 0)
         {
             if(x >= 2)
@@ -1260,7 +1260,7 @@ adjustCounters2(int* counters, int loops, double cycles)
     for(x = 0; x < loops; x++)
     {
         new_counter = floor(big_counter / 256);
-        counters[x] = (big_counter - 256 * new_counter + 1);
+        counters[x] = ((int)big_counter - 256 * (int)new_counter + 1);
         //counters[x] &= 0xFF;
         big_counter = new_counter;
     }
@@ -1439,7 +1439,7 @@ generateSubDelaySX(double cycles, string label)
     else
     {
         printf("\n\t\t\t;%.0f cycle%s\n", cycles, cycles > 1 ? "s" : "");
-        x = cycles;
+        x = (int) cycles;
         while(x != 0)
         {
             if(x >= 3)
@@ -1500,7 +1500,7 @@ adjustCountersSX(int* counters, int loops, double cycles)
         weightCorrection -= pow(256, x);
         weight = pow(256, x) * (3*loops + 1) - weightCorrection;
         
-        counters[x] = floor(cycles / weight) + 1;
+        counters[x] = (int)floor(cycles / weight) + 1;
         
         // make sure the result fits in 8 bits
         if(counters[x] > 256)

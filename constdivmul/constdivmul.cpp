@@ -111,15 +111,14 @@ January 13, Sat
 
 */
 
-//#undef WIN32
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
 #include <time.h>
 
-#ifdef WIN32
+#ifdef _WIN32
+  #include <windows.h>
   #include <io.h>
   #include <share.h>
   #define strcasecmp _stricmp
@@ -141,7 +140,7 @@ extern "C"
 {
   #include "../cgihtml/cgi-lib.h"
   #include "../cgihtml/html-lib.h"
-#ifdef WIN32
+#ifdef _WIN32
   char** CommandLineArguments;
 #else
   extern char** CommandLineArguments;
@@ -436,7 +435,7 @@ logRequest()
 
     while(log == NULL && nowTime < final)
     {
-#ifdef WIN32
+#ifdef _WIN32
       log = _fsopen( "constdivmul_log.csv", "a", _SH_DENYWR);   //create or open file in append mode
       //writing is disabled for other processes
 

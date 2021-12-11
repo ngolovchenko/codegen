@@ -23,7 +23,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#ifdef WIN32
+#ifdef _WIN32
   #include <io.h>
   #define strcasecmp _stricmp
 #endif
@@ -85,7 +85,7 @@ char *get_DEBUG()
     argv = CommandLineArguments;
     while(*++argv)
     {
-        bufsize += strlen(*argv) + 1;   //add 1 char for &
+        bufsize += (int) strlen(*argv) + 1;   //add 1 char for &
         buffer = (char*)realloc(buffer, bufsize);
         pos += sprintf(buffer + pos, "%s&", *argv);
     }
@@ -120,7 +120,7 @@ char *get_DEBUG()
 char *get_POST()
 {
   unsigned int content_length;
-  char *buffer;
+  char *buffer = NULL;
 
   if (CONTENT_LENGTH != NULL) {
     content_length = atoi(CONTENT_LENGTH);
@@ -148,7 +148,7 @@ char *get_GET()
 int parse_CGI_encoded(llist *entries, char *buffer)
 {
   int i, j, num, token;
-  int len = strlen(buffer);
+  int len = (int)strlen(buffer);
   char *lexeme = (char *)malloc(sizeof(char) * len + 1);
   entrytype entry;
   node *window;
@@ -237,7 +237,7 @@ int parse_form_encoded(llist* entries)
   long content_length;
   entrytype entry;
   node* window;
-  FILE *uploadfile;
+  FILE *uploadfile = NULL;
   char *uploadfname, *tempstr, *boundary;
   char *buffer = (char *)malloc(sizeof(char) * BUFSIZ + 1);
   char *prevbuf = (char *)malloc(sizeof(char) + BUFSIZ + 1);
@@ -571,7 +571,7 @@ int parse_cookies(llist *entries)
     return 0;
   list_create(entries);
   window = entries->head;
-  len = strlen(cookies);
+  len = (int)strlen(cookies);
   entry.name = (char *)malloc(sizeof(char) * len + 1);
   entry.value = (char *)malloc(sizeof(char) * len + 1);
   for (i = 0; i < len; i++) {
