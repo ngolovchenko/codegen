@@ -38,7 +38,18 @@
 
 char** CommandLineArguments;
 
+#ifdef __EMSCRIPTEN__
+char* get_wasm_buffer() __attribute__((used));
+char* get_wasm_buffer()
+{
+  // Some shared memory with JS for formatting
+  // the command line when calling main().
+  static char wasm_buffer[1024];
+  *(int*)wasm_buffer = sizeof(wasm_buffer);
+  return wasm_buffer;
+}
 
+#endif
 
 short accept_image()
 {

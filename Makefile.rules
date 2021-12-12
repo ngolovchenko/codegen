@@ -8,11 +8,26 @@
 #      CGI_BIN: name of application
 #      LIBS: list of standard libraries (such as -lstdc++)
 #      MYLIBS: list of local libraries (such as ../cgihtml/cgihtml.a)
+#  3) to build a static HTML with embedded WebAssembly application
+#      WASM_HTML: name of the html output
 
+ifeq ("$(findstring wasm,$(MAKECMDGOALS))","")
+PLATF    ?=native
+else
+PLAT     ?=wasm
+endif
+
+ifeq ($(PLATF),native)
 CC       = gcc
-CFLAGS   = -fexpensive-optimizations -O3 -Wno-write-strings -fPIE
-
 CXX      = g++
+CFLAGS   = -fexpensive-optimizations -O3 -Wno-write-strings -Wno-parenteses -fPIE
+else
+# WebAssembly compiler: https://emscripten.org/docs/getting_started/downloads.html
+CC       = emcc
+CXX      = emcc
+CFLAGS   = -Os -Wno-write-strings -Wno-parentheses -ffast-math
+endif
+
 CXXFLAGS = $(CFLAGS)
 
 AR       = ar
@@ -20,10 +35,8 @@ ARFLAGS  = crs
 
 INCS     =
 
-CLEAN_FILES = *.o $(LIBRARY) $(CGI_BIN) Makefile.depends
-
-CGI_RELEASE = /home/golovche/public_html/cgi-bin/$(CGI_BIN)
-CGI_TEST    = $(CGI_RELEASE)_test
+CLEAN_FILES = *.o $(LIBRARY) $(CGI_BIN) Makefile.depends \
+  $(WASM_HTML) $(WASM_HTML:.html=.wasm.txt) $(WASM_HTML:.html=.wasm)
 
 OBJS     = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 
@@ -34,22 +47,18 @@ OBJS     = $(patsubst %.c,%.o,$(patsubst %.cpp,%.o,$(SOURCES)))
 # all       -- compile library
 # clean     -- remove object files
 # depend    -- build dependency file
-# test      -- compile cgi-bin application and install as *_test
-# install   -- compile cgi-bin application and install
 #
 ##################################################
 
 all: $(LIBRARY) $(CGI_BIN)
+
+wasm: $(WASM_HTML)
 
 clean:
 	-rm -f $(CLEAN_FILES)
 
 depend:
 	$(CC) -MM $(INCS) $(CFLAGS) $(SOURCES) > Makefile.depends
-
-test: $(CGI_TEST)
-
-install: $(CGI_RELEASE)
 
 .PHONY: all clean depend test install
 
@@ -62,7 +71,7 @@ install: $(CGI_RELEASE)
 	$(CXX) $(INCS) $(CXXFLAGS) -c $<
 
 %.a:
-	make -C $(dir $@)
+	make -C $(dir $@) PLATF=$(PLATF)
 
 $(LIBRARY): $(OBJS)
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OBJS)
@@ -70,12 +79,15 @@ $(LIBRARY): $(OBJS)
 $(CGI_BIN): $(OBJS) $(MYLIBS)
 	$(CC) $(OBJS) $(MYLIBS) $(LIBS) -o $(CGI_BIN)
 
-$(CGI_TEST): $(CGI_BIN)
-	cp $(CGI_BIN) $(CGI_TEST)
-	chmod 755 $(CGI_TEST)
+$(WASM_HTML): $(WASM_HTML:.html=.wasm.txt) template.html
+	sed '/const wasm=/ r $<' template.html > $@
 
-$(CGI_RELEASE): $(CGI_TEST)
-	cp $(CGI_TEST) $(CGI_RELEASE)
+.SECONDARY: $(WASM_HTML:.html=.wasm)
+%.wasm.txt: %.wasm
+# convert binary to base64-encoded JS text string
+	openssl base64 -in $(WASM_HTML:.html=.wasm) | sed 's/.*/"\0"+/' > $@
+
+$(WASM_HTML:.html=.wasm): $(LIBRARY) $(CGI_BIN)
 
 Makefile.depends: depend
 
@@ -84,3 +96,5 @@ ifneq ($(MAKECMDGOALS),clean)
 include Makefile.depends
 
 endif
+
+.PHONY: all wasm clean depend

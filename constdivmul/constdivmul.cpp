@@ -153,16 +153,20 @@ extern "C"
 #include "constdivmul.h"
 
 double Const;       //Constant value
-double ConstErr = 0.5;  //Constant error percent
+double ConstErr;  //Constant error percent
 char OutBits;   //Bits number in output
 char AddBits;   //Bits added to input size in result
 char InpBytes;  //Bytes number in input
 char OutBytes;  //Bytes number in output
 PIC16   *ALU;       //Status register and accumulator object
-bool roundResult = 0; //round mode
+bool roundResult; //round mode
 CPU_Code CPU_Option = CPU_PIC16; //selected processor
 
+#ifdef __EMSCRIPTEN__
+const bool isCGI = false;
+#else
 bool isCGI;
+#endif
 
 int main(int argc, char *argv[], char **envp)
 {
@@ -178,7 +182,8 @@ int main(int argc, char *argv[], char **envp)
     //make pointer to command line global
     CommandLineArguments = argv;
 
-    /********* DEBUG *****************
+    /********* DEBUG *****************/
+#if 0
     _putenv("SERVER_SOFTWARE=Microsoft-IIS/4.0");
     _putenv("SERVER_NAME=www.piclist.com");
     _putenv("GATEWAY_INTERFACE=CGI/1.1");
@@ -197,10 +202,12 @@ int main(int argc, char *argv[], char **envp)
     //_putenv("QUERY_STRING=Acc=ACC&Bits=8&endian=little&Const=1.234&ConstErr=0.5&Temp=TEMP&cpu=pic16");
     //_putenv("QUERY_STRING=Acc=ACC&Bits=2&Const=2.35&ConstErr=1&Temp=TEMP&cpu=pic16");
     _putenv("QUERY_STRING=Acc=ACC&Bits=16&endian=little&Const=0.889&ConstErr=0.5&Temp=TEMP&cpu=sx28");
-    /***********************************/
+#endif
     
+#ifndef __EMSCRIPTEN__
     //what kind of request
     isCGI = getenv("REQUEST_METHOD") != NULL;
+#endif
 
     // Read form values
     read_cgi_input(&entries);
@@ -218,7 +225,7 @@ int main(int argc, char *argv[], char **envp)
             //CGI form should have query string and these fields
             helpScreen();
             list_clear(&entries);
-            exit(0);
+            return 0;
         }
         // Generate header and title
         html_header();
@@ -229,7 +236,7 @@ int main(int argc, char *argv[], char **envp)
         //command line mode and no required parameters
         helpScreen();
         list_clear(&entries);
-        exit(0);
+        return 0;
     }
 
     if(is_field_exists(entries, "Const"))
@@ -244,6 +251,7 @@ int main(int argc, char *argv[], char **envp)
     {
         AccVal = atoi(cgi_val(entries, "Bits"));
     }
+    ConstErr = 0.5;
     if(is_field_exists(entries, "ConstErr"))
     {
         ConstErr = atof(cgi_val(entries, "ConstErr"));
@@ -259,6 +267,7 @@ int main(int argc, char *argv[], char **envp)
             endianVal = big;
         }
     }
+    roundResult = false;
     if(is_field_exists(entries, "round"))
     {
         if(strcasecmp(cgi_val(entries, "round"), "yes") == 0)
@@ -281,7 +290,7 @@ int main(int argc, char *argv[], char **envp)
         {
             CPU_Option = CPU_PIC16;
         }
-        else if(strcasecmp(cgi_val(entries, "CPU"), "SX28") == 0)
+        else
         {
             CPU_Option = CPU_SX28;
         }

@@ -63,7 +63,6 @@ Delay_0
 #include <string>
 #include <list>
 using namespace std;
-typedef list<string> LISTSTR;
 
 //Custom includes
 extern "C"
@@ -79,12 +78,15 @@ extern "C"
 
 #include "delay.h"
 
+#ifdef __EMSCRIPTEN__
+const bool isCGI = false;
+#else
 bool isCGI;
+#endif
 
 double Delay = -1;
-string RegName = "d"; //prefix. If temporary registers are specified, prefix is the first name
-LISTSTR Regs;   //list of specified or used register names
-//(if not enough list is expanded using RegName prefix)
+string Regs[MAXNUMBEROFLOOPS]; //list of specified or used register names
+//(if not enough list is expanded using first register+"_" as prefix)
 double Clock = 4; //Clock frequency in MHz
 bool Routine = false; //generate as a routine
 int RoutineAddedDelay = 4; //call & return time
@@ -102,7 +104,8 @@ int main(int argc, char *argv[], char **envp)
     //make pointer to command line global
     CommandLineArguments = argv;
 
-    /********* DEBUG *****************
+    /********* DEBUG *****************/
+#if 0
     _putenv("SERVER_SOFTWARE=Microsoft-IIS/4.0");
     _putenv("SERVER_NAME=www.piclist.com");
     _putenv("GATEWAY_INTERFACE=CGI/1.1");
@@ -117,14 +120,16 @@ int main(int argc, char *argv[], char **envp)
     //_putenv("QUERY_STRING=Delay=0.5&Type=seconds&Regs=d1+d2+d3+d4&clock=4&name=Delay&CPU=SX");
     //_putenv("QUERY_STRING=Delay=1000&Type=cycles&Regs=d1+d2+d3+d4&clock=4&name=Delay&CPU=SX");
     _putenv("QUERY_STRING=Delay=458500&Type=cycles&Regs=d1+d2+d3+d4&clock=4&name=Delay&CPU=SX");
-    /***********************************/
+#endif
 
     //what kind of request
+#ifndef __EMSCRIPTEN__
     isCGI = false;
     if(getenv("REQUEST_METHOD") != NULL)
     {
         isCGI = true;
     }
+#endif
 
     /* Read form values */ 
     read_cgi_input(&entries);
@@ -142,7 +147,7 @@ int main(int argc, char *argv[], char **envp)
             //CGI form should have query string and these fields
             helpScreen();
             list_clear(&entries);
-            exit(0);
+            return 0;
         }
         // Generate header and title
         html_header();
@@ -153,7 +158,7 @@ int main(int argc, char *argv[], char **envp)
         //command line mode and no required parameters
         helpScreen();
         list_clear(&entries);
-        exit(0);
+        return 0;
     }
 
     //read the form fields / options
@@ -173,7 +178,11 @@ int main(int argc, char *argv[], char **envp)
         {
             inSeconds = false;
         }
-        else if(buf != "seconds")
+        else if(buf == "seconds")
+        {
+            inSeconds = true;
+        }
+        else
         {
             ReportError(Error = 1);
         }
@@ -185,7 +194,7 @@ int main(int argc, char *argv[], char **envp)
         buf = cgi_val(entries, "Regs");
     }
     //extract names to list
-    extractRegs(buf, Regs, RegName);
+    extractRegs(buf);
 
     if(is_field_exists(entries, "Clock"))
     {
@@ -199,10 +208,7 @@ int main(int argc, char *argv[], char **envp)
     {
         buf = cgi_val(entries, "Routine");
         lowercaseString(buf);
-        if(buf == "yes")
-        {
-            Routine = true;
-        }
+        Routine = buf == "yes";
     }
     if(is_field_exists(entries, "Name"))
     {
@@ -211,10 +217,7 @@ int main(int argc, char *argv[], char **envp)
     
     if(is_field_exists(entries, "CPU"))
     {
-        if(strcmp(cgi_val(entries, "CPU"), "SX") == 0)
-        {
-            picMode = false;
-        }
+        picMode = strcmp(cgi_val(entries, "CPU"), "PIC") == 0;
     }
 
     //convert delay to cycles
@@ -275,6 +278,8 @@ int main(int argc, char *argv[], char **envp)
     {
         html_end();
     }
+    for(int i = 0; i < MAXNUMBEROFLOOPS; i++)
+        Regs[i].clear();
     list_clear(&entries);
     return 0;
 }
@@ -605,46 +610,39 @@ helpScreen()
 }
 
 void
-extractRegs(string& buf, LISTSTR& Regs, string& newPrefix)
+extractRegs(string& buf)
 {
     size_t x;
-    LISTSTR::iterator i;
-    bool empty=true;
-
     //collect all names in the list Regs
+    int cnt = 0;
     while((x = buf.find_first_of(" ,")) != -1) //find first space or comma
     {
-        Regs.push_back(buf.substr(0, x));
-        stripBlanks(Regs.front());
-        if(Regs.back().empty())
+        string s = buf.substr(0, x);
+        stripBlanks(s);
+        if(!s.empty())
         {
-            Regs.pop_back();
+            Regs[cnt++] = s;
         }
         buf.erase(0, x + 1);
     }
-    Regs.push_back(buf);
-    stripBlanks(Regs.front());
-    if(Regs.back().empty())
+    stripBlanks(buf);
+    if(!buf.empty())
     {
-        Regs.pop_back();
-    }
-    //change prefix
-    if(!Regs.empty() && !Regs.front().empty())
-    {
-        newPrefix = Regs.front() + "_";
-    }
-    //fill all other regs names
-    for(x = Regs.size() + '0'; x < MAXNUMBEROFLOOPS + '0'; x++)
-    {
-        Regs.push_back(newPrefix + to_string(x));
+        Regs[cnt++] = buf;
     }
 
-    /*i = Regs.begin();
-    while(i != Regs.end())
+    //change prefix
+    string newPrefix = "d";
+    if(!Regs[0].empty())
     {
-        printf("%s\n", (*i).c_str());
-        i++;
-    }   */
+        newPrefix = Regs[0] + "_";
+    }
+
+    //fill all other regs names
+    for(int i = cnt; i < MAXNUMBEROFLOOPS; i++)
+    {
+        Regs[i] = newPrefix + to_string(i);
+    }
 }
 
 void 
@@ -945,7 +943,6 @@ generateDelay()
     int loops;
     int x;
     char j = '0';
-    LISTSTR::iterator i;
     
     printForm();
     //convert to cycles
@@ -960,14 +957,14 @@ generateDelay()
         cycles -= RoutineAddedDelay;
     }
     //print cblock
-    i = Regs.begin();
+    int i = 0;
     loops = numberOfLoops(cycles);
     if(loops > 0)
     {
         printf("\n\tcblock\n");
         for(x = 0; x < loops; x++)
         {
-            printf("\t%s\n", (*i).c_str());
+            printf("\t%s\n", Regs[i].c_str());
             i++;
         }
         printf("\tendc\n");
@@ -997,7 +994,6 @@ generateSubDelay(double cycles, string label)
     int counters[MAXNUMBEROFLOOPS];
     int x;
     double d;
-    LISTSTR::iterator i;
 
     //find the number of nested loops
     loops = numberOfLoops(cycles);
@@ -1013,18 +1009,18 @@ generateSubDelay(double cycles, string label)
         d = calculateDelay(counters, loops);
 
         printf("\n\t\t\t;%.0f cycles\n", d);
-        i = Regs.begin();
+        int i = 0;
         for(x = 0; x < loops; x++)
         {
             printf("\tmovlw\t%#.2x\n", counters[x] & 0xFF);
-            printf("\tmovwf\t%s\n", (*i).c_str());
+            printf("\tmovwf\t%s\n", Regs[i].c_str());
             printf("%s%d\n", label.c_str(), x);
             i++;
         }
         for(x = loops - 1; x >= 0; x--)
         {
             i--;
-            printf("\tdecfsz\t%s, f\n", (*i).c_str());
+            printf("\tdecfsz\t%s, f\n", Regs[i].c_str());
             printf("\tgoto\t%s%d\n", label.c_str(), x);
         }
         return(d);
@@ -1060,7 +1056,7 @@ generateDelay2()
     int loops;
     int x;
     char j = '0';
-    LISTSTR::iterator i;
+    
     
     printForm();
     //convert to cycles
@@ -1075,14 +1071,14 @@ generateDelay2()
         cycles -= RoutineAddedDelay;
     }
     //print cblock
-    i = Regs.begin();
+    int i = 0;
     loops = numberOfLoops2(cycles);
     if(loops > 0)
     {
         printf("\n\tcblock\n");
         for(x = 0; x < loops; x++)
         {
-            printf("\t%s\n", (*i).c_str());
+            printf("\t%s\n", Regs[i].c_str());
             i++;
         }
         printf("\tendc\n");
@@ -1173,7 +1169,7 @@ generateSubDelay2(double cycles, string label)
     int counters[MAXNUMBEROFLOOPS];
     int x;
     double d;
-    LISTSTR::iterator i;
+    
 
     //find the number of nested loops
     loops = numberOfLoops2(cycles);
@@ -1184,21 +1180,21 @@ generateSubDelay2(double cycles, string label)
         d = calculateDelay2(counters, loops);
 
         printf("\n\t\t\t;%.0f cycles\n", d);
-        i = Regs.begin();
+        int i = 0;
         for(x = 0; x < loops; x++)
         {
             printf("\tmovlw\t0x%.2X\n", counters[x] & 0xFF);
-            printf("\tmovwf\t%s\n", (*i).c_str());
+            printf("\tmovwf\t%s\n", Regs[i].c_str());
             if(x == (loops - 1))
             {
                 printf("%s\n", label.c_str());
             }
             i++;
         }
-        i = Regs.begin();
+        i = 0;
         for(x = 0; x < loops; x++)
         {
-            printf("\tdecfsz\t%s, f\n", (*i).c_str());
+            printf("\tdecfsz\t%s, f\n", Regs[i].c_str());
             if(x < (loops-1))
             {
                 printf("\tgoto\t$+2\n");
@@ -1282,7 +1278,7 @@ generateDelaySX()
     int loops;
     int x;
     char j = '0';
-    LISTSTR::iterator i;
+    
     
     printForm();
     //convert to cycles
@@ -1297,14 +1293,14 @@ generateDelaySX()
         cycles -= RoutineAddedDelay;
     }
     //print used registers
-    i = Regs.begin();
+    int i = 0;
     loops = numberOfLoopsSX(cycles);
     if(loops > 0)
     {
         printf("\n");
         for(x = 0; x < loops; x++)
         {
-            printf("%s\tDS\t1\n", (*i).c_str());
+            printf("%s\tDS\t1\n", Regs[i].c_str());
             i++;
         }
     }
@@ -1398,7 +1394,7 @@ generateSubDelaySX(double cycles, string label)
     int counters[MAXNUMBEROFLOOPS];
     int x;
     double d;
-    LISTSTR::iterator i;
+    
 
     //find the number of nested loops
     loops = numberOfLoopsSX(cycles);
@@ -1409,21 +1405,21 @@ generateSubDelaySX(double cycles, string label)
         d = calculateDelaySX(counters, loops);
 
         printf("\n\t\t\t;%.0f cycles\n", d);
-        i = Regs.begin();
+        int i = 0;
         for(x = 0; x < loops; x++)
         {
             printf("\tmov\tw, #$%.2X\n", counters[x] & 0xFF);
-            printf("\tmov\t%s, w\n", (*i).c_str());
+            printf("\tmov\t%s, w\n", Regs[i].c_str());
             if(x == (loops - 1))
             {
                 printf("%s:\n", label.c_str());
             }
             i++;
         }
-        i = Regs.begin();
+        i = 0;
         for(x = 0; x < loops; x++)
         {
-            printf("\tdecsz\t%s\n", (*i).c_str());
+            printf("\tdecsz\t%s\n", Regs[i].c_str());
             if(x < (loops-1))
             {
                 printf("\tjmp\t$+2\n");

@@ -1,0 +1,11 @@
+.vs/
+x64/
+Debug/
+Release/
+*.bak
+*.user
+*.o
+*.a
+*.depends
+*.wasm
+*.wasm.txt

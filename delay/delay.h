@@ -24,7 +24,7 @@ void
 helpScreen();
 
 void
-extractRegs(string& buf, LISTSTR& Regs, string& newPrefix);
+extractRegs(string& buf);
 void 
 lowercaseString(string& m);
 void

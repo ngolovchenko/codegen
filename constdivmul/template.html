@@ -1,0 +1,194 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Constant Division/Multiplication Code Generator</title>
+</head>
+
+<body>
+<h1>Constant Division/Multiplication Code Generator</h1>
+<form id="form1" action="none" method="post">
+<table border="2" cellpadding="5" bgcolor="#E0E0E0">
+<tbody><tr><td>   <p>Input/Output register name:<br>
+<input name="Acc" value="ACC"></p></td>
+<td><p>Input register size, bits<br><input name="Bits" value="8" size="3"></p></td>
+<td>Bytes order:<br>
+<input type="radio" name="endian" value="big">big endian<br>
+<input type="radio" name="endian" value="little" checked="">
+little endian<br></td></tr>
+<tr><td colspan="2">Multiply by constant:<br>
+<input name="Const" value="1.234">
+<p>Tip: To divide by a number,<br>enter the value of 1/number into the field.</p></td>
+<td>Maximum error<br>in constant approximation, %<br>
+<a name="const"> 
+<input name="ConstErr" value="0.5" size="16" maxlength="15"></a><p>
+<input name="round" type="checkbox" value="yes">&nbsp;Round result</p></td></tr>
+<tr><td colspan="2">Temporary register name:<br><input name="Temp" value="TEMP"></td>
+<td>
+Select processor:<br>
+<input type="radio" name="cpu" value="pic16" checked="">PIC
+<input type="radio" name="cpu" value="sx28">SX<p><a href="http://piclist.com/techref/piclist/codegen/constdivmul_help.htm">Help</a>&nbsp;&nbsp;&nbsp;
+<input type="submit" id="submit" disabled="true" value="Generate code!"></p>
+</td></tr>
+</tbody></table></form>
+ 
+<button id="button2" hidden="true" onclick="copyToClipboard()">Copy to Clipboard</button>
+
+<pre id="output1" name="output1">
+</pre>
+
+
+<script async type="text/javascript">
+
+const wasm=
+"";
+
+
+// wasm interface
+let inst;
+let module;
+let HEAP8;
+let HEAP32;
+// wasm functions
+let main;
+let get_wasm_buffer;
+
+function _fd_write(fd, iov, iovcnt, pnum) {
+      // hack to support printf
+      var num = 0;
+      for (var i = 0; i < iovcnt; i++) {
+        var ptr = HEAP32[((iov)>>2)];
+        var len = HEAP32[(((iov)+(4))>>2)];
+        iov += 8;
+        for (var j = 0; j < len; j++) {
+          printChar(fd, HEAP8[ptr+j]);
+        }
+        num += len;
+      }
+      HEAP32[((pnum)>>2)] = num;
+      return 0;
+}
+
+function _unknown(val) {
+    console.log("_unknown called");    
+    return 0;
+}
+
+var asmLibraryArg = {
+  "emscripten_memcpy_big": _unknown,
+  "fd_close": _unknown,
+  "fd_seek": _unknown,
+  "fd_write": _fd_write,
+  "setTempRet0": _unknown,
+  "exit": _unknown,
+  "__cxa_atexit": _unknown,
+  "fd_read": _unknown,
+  "__syscall_open": _unknown,
+  "__syscall_fcntl64": _unknown,
+  "__syscall_ioctl": _unknown,
+  "environ_sizes_get": _unknown,
+  "environ_get": _unknown,
+  "abort": _unknown,
+  "emscripten_resize_heap": _unknown,
+};
+
+var importObject = {
+    'env': asmLibraryArg,
+    'wasi_snapshot_preview1': asmLibraryArg,
+};
+
+function loadWebAssembly() {
+  const bin = atob(wasm);
+  let buf = new ArrayBuffer(bin.length);
+  let view = new Uint8Array(buf);
+  for(i=0;i<bin.length;i++) {
+    view[i]=bin.charCodeAt(i);
+  }
+  return WebAssembly.compile(buf)
+    .then(module => {return WebAssembly.instantiate(buf, importObject) });
+};
+
+  
+loadWebAssembly()
+  .then(result => {
+    inst = result.instance;
+    module = result.module;
+    HEAP8 = new Uint8Array(inst.exports.memory.buffer);
+    HEAP32 = new Uint32Array(inst.exports.memory.buffer);
+    main = inst.exports.main;
+    get_wasm_buffer = inst.exports.get_wasm_buffer;
+    form.elements['submit'].disabled=false;
+  }); 
+
+function ptrToString(ptr, maxnum=256)
+{
+  // Copy zero-terminated string from wasm HEAP8 to JS string
+  let s='';
+  for(i = 0; i < maxnum; i++) {
+    let ch=HEAP8[ptr+i]; 
+    if(ch==0) break; 
+    s+=String.fromCharCode(ch); 
+  }
+  return s;
+}
+
+function StringToPtr(s, ptr)
+{
+  // Copy JS string to zero-terminated string on wasm heap
+  let num = s.length;
+  for(i = 0; i < num; i++) {
+    HEAP8[ptr+i] = s.charCodeAt(i); 
+  }
+  HEAP8[ptr+num] = 0;
+  return ptr + num + 1;
+}
+
+const form  = document.getElementById('form1');
+const output = document.getElementById('output1');
+
+form.addEventListener('submit', (event) => {
+    // stop form submission
+    event.preventDefault();
+
+    // handle the form data
+    output.textContent = '';
+
+    // format argv parameter for main
+    const buf = get_wasm_buffer();
+    const argc = 9;
+    let ptr = buf + (argc + 1)*4; 
+    HEAP32[buf/4]= ptr;
+    ptr = StringToPtr("constdivmul.wasm", ptr);
+    HEAP32[buf/4+1]= ptr;
+    ptr = StringToPtr("Acc=" + form.elements['Acc'].value, ptr);
+    HEAP32[buf/4+2]= ptr;
+    ptr = StringToPtr("Bits=" + form.elements['Bits'].value, ptr);
+    HEAP32[buf/4+3]= ptr;
+    ptr = StringToPtr("Const=" + form.elements['Const'].value, ptr);
+    HEAP32[buf/4+4]= ptr;
+    ptr = StringToPtr("ConstErr=" + form.elements['ConstErr'].value, ptr);
+    HEAP32[buf/4+5]= ptr;
+    ptr = StringToPtr("Temp=" + form.elements['Temp'].value, ptr);
+    HEAP32[buf/4+6]= ptr;
+    ptr = StringToPtr("endian=" + form.elements['endian'].value, ptr);
+    HEAP32[buf/4+7]= ptr;
+    ptr = StringToPtr("round=" + (form.elements['round'].checked ? "yes" : "no"), ptr);
+    HEAP32[buf/4+8]= ptr;
+    ptr = StringToPtr("CPU=" + form.elements['cpu'].value, ptr);
+    HEAP32[buf/4+9]= 0;
+ 
+    main(argc, buf, 0);
+
+    document.getElementById('button2').hidden = false;
+});
+
+function printChar(fd, ch) {
+   output.textContent += String.fromCharCode(ch);
+}
+
+function copyToClipboard() {
+  let output = document.getElementById('output1');
+  navigator.clipboard.writeText(output.textContent);
+}
+
+</script>
+
+
+</body></html>
