@@ -20,17 +20,18 @@ endif
 ifeq ($(PLATF),native)
 CC       = gcc
 CXX      = g++
+AR       = ar
 CFLAGS   = -fexpensive-optimizations -O3 -Wno-write-strings -Wno-parenteses -fPIE
 else
 # WebAssembly compiler: https://emscripten.org/docs/getting_started/downloads.html
 CC       = emcc
 CXX      = emcc
+AR       = emar
 CFLAGS   = -Os -Wno-write-strings -Wno-parentheses -ffast-math
 endif
 
 CXXFLAGS = $(CFLAGS)
 
-AR       = ar
 ARFLAGS  = crs
 
 INCS     =
