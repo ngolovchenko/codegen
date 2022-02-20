@@ -1,0 +1,65 @@
+<HTML>
+<HEAD>
+<TITLE>Keyword Interpreter Code Generator</TITLE>
+</HEAD>
+<BODY>
+<CENTER><H1>Keyword Interpreter Code Generator</H1></CENTER>
+</BODY>
+<FORM  ACTION="/cgi-bin/keyword.exe" METHOD="GET">
+<TABLE CELLPADDING=16>
+	<TR>
+		<TD VALIGN="TOP" >
+			<H2>Keywords List</H2>
+			<TEXTAREA  NAME="Keywords" ROWS=20 COLS=32>
+send
+write
+read
+on
+off
+0
+1
+help
+test
+getEE
+putEE
+</TEXTAREA><BR>
+			Whitespaces:
+			<INPUT TYPE="text" NAME="Whitespaces" SIZE="36" MAXLENGTH="255" VALUE="' ', '\t', 0x0D, 0x0A"><BR>
+			Delimeters:
+			<INPUT TYPE="text" NAME="Delimiters" SIZE="36" MAXLENGTH="255" VALUE="' ', '\t', 0x0D, 0x0A"><BR>
+			<INPUT TYPE="checkbox"  NAME="CaseInsensitive" >
+			Case insensitive<BR>
+			<INPUT TYPE="checkbox"  NAME="Whole">
+			Whole words match<BR><BR><BR>
+			<CENTER><INPUT TYPE="submit" VALUE="Generate Now!"></CENTER>
+		</TD>
+		<TD VALIGN="TOP">
+			<H2>Description</H2>
+			<P>
+			This code generator produces the PIC assembler code to look for keywords in a string or a serial ASCII stream.
+			</P>
+			<P>
+			Parsing routine receives one character at a time and returns the keyword code, or the next state, or error code. The keywords codes are given in the order they were written, starting from 1.
+			</P>
+			<P>
+			You can specify whether keywords are matched as the whole words or just starting unique part. This let's you use shorthand names for the keywords. Also, case insensitiveness can be specified.
+			<P>
+			The routine can skip whitespaces before a keyword. Enter the desired characters in the form entry Whitespaces. In some cases it's probably better to delete carriage return (0x0d) or line feed (0x0a) characters if you don't need them, or add some others. To detect the end of a keyword the routine needs to know what characters separate keywords in the text stream (form entry Delimiters). Often, they are the same as whitespaces, but you might want to add '\0' to work with zero terminated strings, or '(' in case the keyword is a function name, e.g. Speed(100). A delimiter character is received as a look-ahead character after a keyword matched to make sure that the keyword ended.
+			</P>
+			</P>
+			The routine is implemented as a variation of state machine, without explicit tables. The routine is a relatively fast runner, since it compares a character to a minimum number of constant characters, just enough to disambiguate the text meaning. 
+			</P>
+			<P>
+			The size of the generated code is directly related to the number of keywords and their length. It takes about four instructions of program memory per each character in the text area plus jump table and a couple of small routines.
+			</P>
+			<P>
+			See <A HREF="keyword_example.htm">example</A> on how to call the parsing routine.
+			</P>
+		</TD>
+	</TR>
+	
+</FORM>
+</TABLE>
+<P>
+
+</HTML>

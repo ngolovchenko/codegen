@@ -3,7 +3,7 @@
 #
 
 LIBS = cgihtml 
-APPS = constdivmul delay
+APPS = constdivmul delay keyword
 
 all:
 	$(foreach module, $(LIBS) $(APPS), make -C $(module); )

@@ -1,0 +1,271 @@
+<HTML>
+<HEAD>
+<TITLE> Example </TITLE>
+</HEAD>
+<BODY>
+<H1>Example</H1>
+<PRE>
+	#include &ltp16f873.inc&gt        ; processor specific variable definitions
+
+#define parse_state_offset 0x5
+
+	cblock 0x20
+	parse_state, parse_char
+	endc
+
+	cblock
+	buffer	
+	endc
+	
+push	macro x
+	movlw x
+	movwf INDF
+	incf FSR, f
+	endm
+	
+	movlw buffer
+	movwf FSR
+	push 'o'
+	push 'f'
+	push 'f'
+;	push 's'
+;	push 'e'
+;	push 't'
+	push'\0'
+	
+	movlw buffer - 1
+	movwf FSR
+start
+	clrf parse_state
+again
+	incf FSR, f		;read next character
+	movfw INDF	
+	call parse
+	movfw parse_state	;still initial state?
+	skpnz
+	 goto again
+	sublw parse_state_offset-1 ;comand code?
+	skpnc
+	 goto match
+	incfsz parse_state, w	;error?
+	 goto again
+	goto p_error
+	
+; ...
+;
+
+match	nop
+	nop
+	nop
+	goto start
+	
+p_error	nop
+	nop
+	goto start
+	
+
+
+;-------------- keywords list ---------------------
+; Case Sensitive
+; Incomplete words match
+; Whitespaces: ' ', '\t', 0x0D, 0x0A
+; Delimiters: 0, ' ', '\t', 0x0D, 0x0A
+;
+; Keywords codes:
+; 0x1	offset
+; 0x2	echo
+; 0x3	on
+; 0x4	off
+
+;***********************************************
+; Simple parser for command names 
+;
+; Input:
+;  w             next character in a string
+;  parse_state   current state
+; Output:
+;  parse_state contains current state:
+;     0 - initial state
+;     1...(parse_state_offset-1) - command code
+;     parse_state_offset...0xFE   - next state
+;     0xFF - error (not matched)
+; Temporary:
+;  parse_char, parse_state
+; Usage:
+;	1)clrf parse_state
+;	2)call parse with a new character
+;	3)check parse_state and perform actions
+;	4)repeat from 2)
+; Note:
+;  1) The parser takes one character as a look-ahead.
+;  When a command name matches, parse_char contains
+;  the first character AFTER the name. If it should
+;  be checked also, initialize and call parse once more
+;  with the same character first, then others as usually.
+;  2) Size of state table is approximately 4 instructions
+;  per each character of the total characters number
+;  (e.g. total for commands "read" and "set" is 7,
+;  i.e state table is about 21 instructions)
+;
+;***********************************************
+parse
+	movwf parse_char        ;save new character
+	movfw parse_state       ;check if current state is zero
+	skpz
+	 goto parse2
+	movfw parse_char        ;then skip whitespaces
+	addlw	-' '		;accumulator == ' ' ?
+	skpnz
+	 retlw 0		;return if equal
+	addlw	' ' - '\t'	;restore accumulator and check if equals '\t'
+	skpnz
+	 retlw 0		;return if equal
+	addlw	'\t' - 0x0D	;restore accumulator and check if equals 0x0D
+	skpnz
+	 retlw 0		;return if equal
+	addlw	0x0D - 0x0A	;restore accumulator and check if equals 0x0A
+	skpnz
+	 retlw 0		;return if equal
+parse2
+	call parse_table
+	iorlw 0                 ;check if w == 0 (look ahead for delimiter succesful)
+	skpz
+	 movwf parse_state      ;store new state
+	return
+;***********************************************
+; State Table
+;
+; Input:
+;  parse_state -> current state + parse_state_offset
+; Output:
+;  w 	        -> new state + parse_state_offset
+;
+; Note
+;  Zero parse_state means initial state
+;***********************************************
+parse_table
+	movlw high(parse_table_start)
+	movwf PCLATH
+	movfw parse_state	;read current state
+	skpnz			;is it inital?
+	 goto parse_state0
+	addlw -parse_state_offset-1 ;remove offset
+;jump table with automatic block boundary workaround
+	addlw low(parse_table_start)
+	skpnc
+	 incf PCLATH, f
+	movwf PCL	;-> takeoff
+
+parse_state_delimiter
+;called from state table to check for end of name
+	movwf parse_state
+	movfw parse_char
+	addlw	-0		;accumulator == 0 ?
+	skpnz
+	 retlw 0		;return if equal
+	addlw	0 - ' '	;restore accumulator and check if equals ' '
+	skpnz
+	 retlw 0		;return if equal
+	addlw	' ' - '\t'	;restore accumulator and check if equals '\t'
+	skpnz
+	 retlw 0		;return if equal
+	addlw	'\t' - 0x0D	;restore accumulator and check if equals 0x0D
+	skpnz
+	 retlw 0		;return if equal
+	addlw	0x0D - 0x0A	;restore accumulator and check if equals 0x0A
+	skpnz
+	 retlw 0		;return if equal
+	retlw 0xFF
+
+parse_table_start
+;---------------- jump table start ----------------
+	goto	parse_state1
+	goto	parse_state2
+	goto	parse_state3
+	goto	parse_state4
+	goto	parse_state5
+	goto	parse_state6
+	goto	parse_state7
+	goto	parse_state8
+	goto	parse_state9
+	goto	parse_state10
+	goto	parse_state11
+;---------------- jump table end ------------------
+
+;--------------- state table start ----------------
+parse_state0
+	movf	parse_char, w
+	addlw	-'o'
+	skpnz
+	 retlw	0x6
+	addlw	'o'-'e'
+	skpnz
+	 retlw	0xC
+	retlw	0xFF
+parse_state1
+	movf	parse_char, w
+	addlw	-'f'
+	skpnz
+	 retlw	0x7
+	addlw	'f'-'n'
+	skpnz
+	 retlw	0x10
+	goto	parse_state11
+parse_state2
+	movf	parse_char, w
+	addlw	-'f'
+	skpnz
+	 retlw	0x8
+	retlw	0xFF
+parse_state3
+	movf	parse_char, w
+	addlw	-'s'
+	skpnz
+	 retlw	0x9
+	movlw	0x4
+	goto	parse_state_delimiter
+parse_state4
+	movf	parse_char, w
+	addlw	-'e'
+	skpnz
+	 retlw	0xA
+	goto	parse_state6
+parse_state5
+	movf	parse_char, w
+	addlw	-'t'
+	skpnz
+	 retlw	0xB
+parse_state6
+	movlw	0x1
+	goto	parse_state_delimiter
+parse_state7
+	movf	parse_char, w
+	addlw	-'c'
+	skpnz
+	 retlw	0xD
+	goto	parse_state10
+parse_state8
+	movf	parse_char, w
+	addlw	-'h'
+	skpnz
+	 retlw	0xE
+	goto	parse_state10
+parse_state9
+	movf	parse_char, w
+	addlw	-'o'
+	skpnz
+	 retlw	0xF
+parse_state10
+	movlw	0x2
+	goto	parse_state_delimiter
+parse_state11
+	movlw	0x3
+	goto	parse_state_delimiter
+;--------------- state table end ------------------
+
+; Generated by www.piclist.com/cgi-bin/keyword.exe (version April 21, 2000)
+; Fri Apr 21 09:47:08 2000 GMT
+	end
+</PRE>
+</BODY>
+</HTML>
