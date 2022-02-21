@@ -6,8 +6,6 @@
 #define MAXNUMBEROFLOOPS 8
 #define BASICDELAY (picMode ? 10 : 15)  //maximum delay without loops
 
-#undef SHOW_BANNER
-
 void
 ReportError(char Err);
 void
@@ -18,8 +16,6 @@ void
 printForm();
 void
 TimeStamp();
-void
-Banner();
 void
 helpScreen();
 

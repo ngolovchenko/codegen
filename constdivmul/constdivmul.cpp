@@ -352,7 +352,6 @@ int main(int argc, char *argv[], char **envp)
         {
             printf("</PRE>\n");
             TimeStamp();
-            Banner();
         }
     }
     else
@@ -868,22 +867,6 @@ TimeStamp()
     	getenv("SCRIPT_NAME"), 
     	VERSIONDATE);
     printf("; %s GMT<BR>\n", asctime(gmt));
-}
-
-void Banner()
-{
-#ifdef SHOW_BANNER
-    printf("<TABLE ALIGN=\"CENTER\"  BORDER=\"1\"  CELLPADDING=\"8\">\n");
-    printf("    <TR>\n");
-    printf("        <TD WIDTH=90%s BGCOLOR=\"#FFFF00\" >\n", "%");
-    printf("        <FONT COLOR=\"#000080\"><CENTER>\n");
-    printf("I hope my little code generator helps you. Would you like to help \n");
-    printf("me find a job in U.S.?<BR>\n");
-    printf("<A HREF=\"http://techref.massmind.org/member/NG--944\">Nikolai Golovchenko</A>\n");
-    printf("        </CENTER></FONT></TD>\n");
-    printf("    </TR>\n");
-    printf("</TABLE>\n");
-#endif
 }
 
 void

@@ -11,17 +11,12 @@
 #define MAXCODESIZE 65536
 #define VERSIONDATE "1-May-2002"
 
-#undef SHOW_BANNER
-
-
 void
 constdivmul(Reg* Acc, Reg* Tmp);
 void
 ReportError(char Err, Reg* Acc, Reg* Temp);
 void
 TimeStamp();
-void
-Banner();
 void
 logRequest();
 void

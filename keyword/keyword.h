@@ -2,16 +2,12 @@
 #define VERSIONDATE "April 21, 2000"
 #define MAXCODESIZE 65536
 
-#undef SHOW_BANNER
-
 void
 ReportError(char Err);
 int
 generate(char* Text, bool Insense, bool Whole);
 void
 TimeStamp();
-void
-Banner();
 void
 logRequest();
 void
