@@ -61,7 +61,7 @@ clean:
 depend:
 	$(CC) -MM $(INCS) $(CFLAGS) $(SOURCES) > Makefile.depends
 
-.PHONY: all clean depend test install
+.PHONY: all wasm clean depend
 
 ##################################################
 
@@ -98,4 +98,3 @@ include Makefile.depends
 
 endif
 
-.PHONY: all wasm clean depend
