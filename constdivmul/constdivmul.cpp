@@ -538,7 +538,7 @@ logRequest()
             strcpy(buf, query);
             unescape_url(buf);  //remove escape sequencies
             fprintf(log, "%s", buf); //without comma at the end of line
-            delete(buf);
+            delete[] buf;
         }
         fprintf(log, "\n");
         fclose(log);

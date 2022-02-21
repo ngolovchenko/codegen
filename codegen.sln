@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cgihtml", "cgihtml\cgihtml.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "delay", "delay\delay.vcxproj", "{F95BE6D6-F642-429A-84BA-D21182BE857F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "keyword", "keyword\keyword.vcxproj", "{BD47B32D-F8D1-4D7D-9A93-99D3C1359BF3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{F95BE6D6-F642-429A-84BA-D21182BE857F}.Release|x64.Build.0 = Release|x64
 		{F95BE6D6-F642-429A-84BA-D21182BE857F}.Release|x86.ActiveCfg = Release|Win32
 		{F95BE6D6-F642-429A-84BA-D21182BE857F}.Release|x86.Build.0 = Release|Win32
+		{BD47B32D-F8D1-4D7D-9A93-99D3C1359BF3}.Debug|x64.ActiveCfg = Debug|x64
+		{BD47B32D-F8D1-4D7D-9A93-99D3C1359BF3}.Debug|x64.Build.0 = Debug|x64
+		{BD47B32D-F8D1-4D7D-9A93-99D3C1359BF3}.Debug|x86.ActiveCfg = Debug|Win32
+		{BD47B32D-F8D1-4D7D-9A93-99D3C1359BF3}.Debug|x86.Build.0 = Debug|Win32
+		{BD47B32D-F8D1-4D7D-9A93-99D3C1359BF3}.Release|x64.ActiveCfg = Release|x64
+		{BD47B32D-F8D1-4D7D-9A93-99D3C1359BF3}.Release|x64.Build.0 = Release|x64
+		{BD47B32D-F8D1-4D7D-9A93-99D3C1359BF3}.Release|x86.ActiveCfg = Release|Win32
+		{BD47B32D-F8D1-4D7D-9A93-99D3C1359BF3}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
