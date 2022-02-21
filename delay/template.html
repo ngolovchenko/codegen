@@ -25,6 +25,8 @@
 
 <button id="button2" hidden="true" onclick="copyToClipboard()">Copy to Clipboard</button>
 
+<button id="button3" hidden="true" onclick="selectOutput()">Select Code</button>
+
 <pre id="output1" name="output1">
 </pre>
 
@@ -171,6 +173,8 @@ form.addEventListener('submit', (event) => {
     navigator.permissions.query({ name: "clipboard-write" }).then((result) => {
         if (result.state == "granted" || result.state == "prompt") {
             document.getElementById('button2').hidden = false;
+        } else {
+            document.getElementById('button3').hidden = false;
         }
     });
 });
@@ -182,6 +186,15 @@ function printChar(fd, ch) {
 function copyToClipboard() {
   let output = document.getElementById('output1');
   navigator.clipboard.writeText(output.textContent);
+}
+
+function selectOutput() {
+  let output = document.getElementById('output1');
+  let range = document.createRange();
+  range.selectNodeContents(output);
+  let sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
 }
 
 </script>
