@@ -67,6 +67,10 @@ function _unknown(val) {
     return 0;
 }
 
+function __cxa_throw(ptr, type, destructor) {
+    throw new Error("C++ exception thrown from WebAssembly module.");
+}
+
 var asmLibraryArg = {
   "emscripten_memcpy_big": _unknown,
   "fd_close": _unknown,
@@ -77,12 +81,15 @@ var asmLibraryArg = {
   "__cxa_atexit": _unknown,
   "fd_read": _unknown,
   "__syscall_open": _unknown,
+  "__syscall_openat": _unknown,
   "__syscall_fcntl64": _unknown,
   "__syscall_ioctl": _unknown,
   "environ_sizes_get": _unknown,
   "environ_get": _unknown,
   "abort": _unknown,
   "emscripten_resize_heap": _unknown,
+  "__cxa_throw": __cxa_throw,
+  "_abort_js": _unknown,
 };
 
 var importObject = {

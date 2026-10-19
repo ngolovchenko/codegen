@@ -25,9 +25,10 @@ CFLAGS   = -fexpensive-optimizations -O3 -Wno-write-strings -Wno-parenteses -fPI
 else
 # WebAssembly compiler: https://emscripten.org/docs/getting_started/downloads.html
 CC       = emcc
-CXX      = emcc
+CXX      = em++
 AR       = emar
 CFLAGS   = -Os -Wno-write-strings -Wno-parentheses -ffast-math
+LDFLAGS  = -sSTACK_SIZE=1048576
 endif
 
 CXXFLAGS = $(CFLAGS)
@@ -78,7 +79,7 @@ $(LIBRARY): $(OBJS)
 	$(AR) $(ARFLAGS) $(LIBRARY) $(OBJS)
 
 $(CGI_BIN): $(OBJS) $(MYLIBS)
-	$(CC) $(OBJS) $(MYLIBS) $(LIBS) -o $(CGI_BIN)
+	$(CXX) $(LDFLAGS) $(OBJS) $(MYLIBS) $(LIBS) -o $(CGI_BIN)
 
 $(WASM_HTML): $(WASM_HTML:.html=.wasm.txt) template.html
 	sed '/const wasm=/ r $<' template.html > $@

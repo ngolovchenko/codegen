@@ -64,7 +64,7 @@ short accept_image()
 /* x2c() and unescape_url() stolen from NCSA code */
 char x2c(char *what)
 {
-  register char digit;
+  char digit;
 
   digit = (what[0] >= 'A' ? ((what[0] & 0xdf) - 'A')+10 : (what[0] - '0'));
   digit *= 16;
@@ -74,7 +74,7 @@ char x2c(char *what)
 
 void unescape_url(char *url)
 {
-  register int x,y;
+  int x,y;
 
   for (x=0,y=0; url[y]; ++x,++y) {
     if((url[x] = url[y]) == '%') {
